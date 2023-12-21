@@ -3,6 +3,7 @@ package scan
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/radisvaliullin/challenge20231220/pkg/mysqlproto"
 )
@@ -26,9 +27,7 @@ func New(config Config) *Scan {
 func (s *Scan) Run() error {
 
 	var result Result
-	defer func() {
-		fmt.Printf("%+v\n", result)
-	}()
+	defer printResult(&result)
 
 	addr := fmt.Sprintf("%s:%v", s.config.Host, s.config.Port)
 
@@ -58,14 +57,30 @@ func (s *Scan) Run() error {
 
 	result = Result{
 		Ok:   true,
-		Info: handshakeV10,
+		Info: &handshakeV10,
 	}
 	return nil
 }
 
 func getErrorResult(err error) Result {
 	return Result{
-		Ok:          false,
-		ErrorStatus: err,
+		Ok:    false,
+		Error: err,
 	}
+}
+
+func printResult(res *Result) {
+	builder := strings.Builder{}
+	builder.WriteString("OK: ")
+	builder.WriteString(fmt.Sprintf("%v", res.Ok))
+	builder.WriteString("\n")
+	if res.Ok {
+		builder.WriteString("Info:")
+		builder.WriteString(mysqlproto.BuildHandShakeLogInfo(res.Info))
+	} else {
+		builder.WriteString("Error: ")
+		builder.WriteString(res.Error.Error())
+		builder.WriteString("\n")
+	}
+	fmt.Println(builder.String())
 }
